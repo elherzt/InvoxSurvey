@@ -1,0 +1,6 @@
+@InvoxSurveryAPI_HostAddress = http://localhost:5073
+
+GET {{InvoxSurveryAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
