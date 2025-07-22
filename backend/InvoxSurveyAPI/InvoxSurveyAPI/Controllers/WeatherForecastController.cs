@@ -1,6 +1,7 @@
+using InvoxSurveryAPI;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InvoxSurveryAPI.Controllers
+namespace InvoxSurveyAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
