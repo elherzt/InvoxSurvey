@@ -5,6 +5,8 @@ VisualStudioVersion = 17.14.36119.2
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoxSurveyAPI", "InvoxSurveyAPI\InvoxSurveyAPI.csproj", "{3F52A80C-BDED-48BF-84B7-128AFCF2F8A4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataLayer", "DataLayer\DataLayer.csproj", "{443E2199-F09A-434D-9D83-351CE6A7D8ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{3F52A80C-BDED-48BF-84B7-128AFCF2F8A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F52A80C-BDED-48BF-84B7-128AFCF2F8A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F52A80C-BDED-48BF-84B7-128AFCF2F8A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{443E2199-F09A-434D-9D83-351CE6A7D8ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{443E2199-F09A-434D-9D83-351CE6A7D8ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{443E2199-F09A-434D-9D83-351CE6A7D8ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{443E2199-F09A-434D-9D83-351CE6A7D8ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

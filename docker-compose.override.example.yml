@@ -1,0 +1,9 @@
+services:
+  backend:
+    build:
+      context: ./backend/InvoxSurveyAPI
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend/InvoxSurveyAPI:/app
+    ports:
+      - "5000:80"
