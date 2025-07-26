@@ -1,6 +1,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dev
 WORKDIR /app/InvoxSurveyAPI
 
+COPY wait-for-it.sh /app/InvoxSurveyAPI/wait-for-it.sh
+RUN chmod +x /app/InvoxSurveyAPI/wait-for-it.sh
 
 CMD ["dotnet", "watch", "run"]
 
