@@ -5,7 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: invox_api
     ports:
-      - "5000:80" 
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development 
     env_file:
       - ./backend/InvoxSurveyAPI/InvoxSurveyAPI/.env
     depends_on:
