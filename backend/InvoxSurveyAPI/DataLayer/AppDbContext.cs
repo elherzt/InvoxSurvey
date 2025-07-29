@@ -62,6 +62,10 @@ namespace DataLayer
                 .WithMany(sec => sec.Questions)
                 .HasForeignKey(q => q.SectionId);
 
+            modelBuilder.Entity<QuestionsType>()
+                .Property(q => q.Id)
+                .ValueGeneratedNever(); /// Prevent EF from generating values for this property
+
 
             modelBuilder.Entity<Option>()
                 .HasOne(opt => opt.Question)
@@ -77,6 +81,10 @@ namespace DataLayer
                 .HasOne(s => s.Status)
                 .WithMany()
                 .HasForeignKey(s => s.StatusId);
+
+            modelBuilder.Entity<Role>()
+                .Property(r=> r.Id)
+                .ValueGeneratedNever(); // Prevent EF from generating values for this property
 
             modelBuilder.Entity<User>()
                 .HasOne(u => u.Role)

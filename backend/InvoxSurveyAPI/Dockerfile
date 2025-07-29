@@ -6,11 +6,13 @@ WORKDIR /src
 COPY ./*.sln ./
 COPY ./InvoxSurveyAPI/*.csproj ./InvoxSurveyAPI/
 COPY ./DataLayer/*.csproj ./DataLayer/
+COPY ./Shared/*.csproj ./Shared/
 RUN dotnet restore
 
 # Copy the rest of the code
 COPY ./InvoxSurveyAPI/. ./InvoxSurveyAPI/
 COPY ./DataLayer/. ./DataLayer/
+COPY ./Shared/. ./Shared/
 WORKDIR /src/InvoxSurveyAPI
 RUN dotnet publish -c Release -o /app/publish
 
