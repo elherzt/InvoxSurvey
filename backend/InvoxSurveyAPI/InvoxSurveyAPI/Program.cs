@@ -1,5 +1,6 @@
 ﻿using DataLayer;
 using DataLayer.CommonRepository;
+using DataLayer.Repositories.UserRepository;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Shared.Security;
@@ -27,6 +28,13 @@ builder.Services.AddSingleton<IPasswordHasherService, PasswordHasherService>();
 builder.Services.Configure<JWTConfig>(builder.Configuration.GetSection("JWTConfig"));
 builder.Services.AddScoped<IJWTGenerator, JWTGenerator>();
 
+AuthConfig.ConfigureJwt(builder.Services, builder.Configuration);
+
+
+
+// Repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 
 var app = builder.Build();
 
@@ -46,9 +54,11 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    
 }
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 

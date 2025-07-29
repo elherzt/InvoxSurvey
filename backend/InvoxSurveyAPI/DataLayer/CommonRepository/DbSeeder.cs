@@ -74,8 +74,8 @@ namespace DataLayer.CommonRepository
             if (!await dbContext.Users.AnyAsync())
             {
                 await dbContext.Users.AddRangeAsync(
-                    new User { Name = "Admin User", Email = "admin@invoxsurvey.com", Password = hashedAdminPassword, RoleId = (int)UserRole.Admin },
-                    new User { Name = "Interviewer User", Email = "interviewer@invoxsurvey.com", Password = hashedInterviewerPassword, RoleId = (int)UserRole.Interviewer }
+                    new User { Name = "Admin User", Email = "admin@invoxsurvey.com", Password = hashedAdminPassword, RoleId = (int)UserRole.Admin, IsActive = true, CreatedDate = DateTime.UtcNow },
+                    new User { Name = "Interviewer User", Email = "interviewer@invoxsurvey.com", Password = hashedInterviewerPassword, RoleId = (int)UserRole.Interviewer, IsActive = true, CreatedDate = DateTime.UtcNow }
                 );
                 changes = true;
             }
