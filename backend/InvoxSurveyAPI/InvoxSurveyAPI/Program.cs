@@ -20,7 +20,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton<IPasswordHasherService, PasswordHasherService>(); // Hasher service
+// Hasher service
+builder.Services.AddSingleton<IPasswordHasherService, PasswordHasherService>();
+
+//JWT Configuration
+builder.Services.Configure<JWTConfig>(builder.Configuration.GetSection("JWTConfig"));
+builder.Services.AddScoped<IJWTGenerator, JWTGenerator>();
 
 
 var app = builder.Build();
