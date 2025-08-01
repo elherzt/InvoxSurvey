@@ -409,13 +409,13 @@ namespace DataLayer.Repositories.Surveyrepository
                 {
                     foreach (var item in question.Answers)
                     {
-                        if (item.Option_Id != -1) // -1 is used for skiped answers 
+                        if (item.Option_Id != -1) // -1 is used for skiped answers, front must be send -1 
                         {
                             AnswerOption aws = new AnswerOption();
                             aws.AnswerId = answer.Id;
                             aws.OptionId = item.Option_Id;
                             aws.Text = item.Text;
-                            aws.Audio = item?.Audio;
+                            aws.Audio = item?.Audio; // Is audio needed? pending to review, it coud be only open-ended questions
                             _context.AnswerOptions.Add(aws);
                         }
 
@@ -434,25 +434,15 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> Create(SurveyCreateDTO model)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Encuesta guardada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Survey created successfully");
             try
             {
-                // Validación básica del modelo
-                if (model == null)
-                {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "El modelo de encuesta no puede ser nulo");
-                }
+                
 
-                // Validación del nombre de la encuesta
-                if (string.IsNullOrWhiteSpace(model.Name))
-                {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "El nombre de la encuesta no puede estar vacío");
-                }
-
-                // Validación de secciones
+                // Validate sections
                 if (model.Sections == null || !model.Sections.Any())
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "La encuesta debe contener al menos una sección");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey must contain at least one section");
                 }
 
                 Survey survey = new Survey
@@ -469,16 +459,12 @@ namespace DataLayer.Repositories.Surveyrepository
 
                 foreach (var section in model.Sections)
                 {
-                    // Validación de descripción de sección
-                    if (string.IsNullOrWhiteSpace(section.Description))
-                    {
-                        return new CustomResponse(TypeOfResponse.FailedResponse, "La descripción de la sección no puede estar vacía");
-                    }
 
-                    // Validación de preguntas en la sección
+
+                    // validate questions in section
                     if (section.Questions == null || !section.Questions.Any())
                     {
-                        return new CustomResponse(TypeOfResponse.FailedResponse, "Cada sección debe contener al menos una pregunta");
+                        return new CustomResponse(TypeOfResponse.FailedResponse, "Each section must contain at least one question.");
                     }
 
                     Section sec = new Section
@@ -489,14 +475,14 @@ namespace DataLayer.Repositories.Surveyrepository
 
                     foreach (var question in section.Questions)
                     {
-                        // Validación de descripción de pregunta según tipo
-                        if (string.IsNullOrWhiteSpace(question.Description))
+                        // Question description validation based on type
+                        if (string.IsNullOrWhiteSpace(question.Description)) //allow empty description for open-ended questions (?) pending to review
                         {
-                            if (question.TypeId < 3) // Asumo que tipos <=3 son preguntas que requieren descripción
+                            if (question.TypeId < 3) // pending to review
                             {
-                                return new CustomResponse(TypeOfResponse.FailedResponse, "Las preguntas de este tipo deben tener una descripción");
+                                return new CustomResponse(TypeOfResponse.FailedResponse, "Questions of this type must have a description.");
                             }
-                            question.Description = "Abierta"; // Solo para tipos >3
+                            question.Description = "Open-ended question"; 
                         }
 
                         Question qst = new Question
@@ -506,19 +492,18 @@ namespace DataLayer.Repositories.Surveyrepository
                             Options = new List<Option>()
                         };
 
-                        // Validación de opciones para preguntas que las requieren
-                        if (question.TypeId <= 3) // Asumo que tipos <=3 son preguntas que requieren opciones
+                        if (question.TypeId <= 3) 
                         {
                             if (question.Options == null || !question.Options.Any())
                             {
-                                return new CustomResponse(TypeOfResponse.FailedResponse, "Las preguntas de este tipo deben contener opciones");
+                                return new CustomResponse(TypeOfResponse.FailedResponse, "Questions of this type must contain options.");
                             }
 
                             foreach (var option in question.Options)
                             {
                                 if (string.IsNullOrWhiteSpace(option.Description))
                                 {
-                                    return new CustomResponse(TypeOfResponse.FailedResponse, "Las opciones no pueden estar vacías");
+                                    return new CustomResponse(TypeOfResponse.FailedResponse, "Options cannot be empty.");
                                 }
 
                                 Option opt = new Option
@@ -538,6 +523,8 @@ namespace DataLayer.Repositories.Surveyrepository
 
                 _context.Surveys.Add(survey);
                 await _context.SaveChangesAsync();
+
+                response.Data = new SurveyDTO(survey, true);
             }
             catch (Exception ex)
             {
@@ -548,13 +535,13 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> Publicar(int id)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Encuesta publicada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Survey published successfully.");
             try
             {
                 var survey = await _context.Surveys.FindAsync(id);
                 if (survey == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Encuesta no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey not found");
                 }
                 survey.StatusId = (int)SurveyStatus.Published;
                 _context.Surveys.Update(survey);
@@ -566,16 +553,17 @@ namespace DataLayer.Repositories.Surveyrepository
             }
             return response;
         }
+
         //update survey like add survey
         public async Task<CustomResponse> Update(SurveyCreateDTO model)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Encuesta actualizada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Survey updated successfully.");
             try
             {
                 var survey = await _context.Surveys.FindAsync(model.id);
                 if (survey == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Encuesta no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey not found");
                 }
                 survey.Name = model.Name;
                 survey.Description = model.Description;
@@ -585,6 +573,8 @@ namespace DataLayer.Repositories.Surveyrepository
                 survey.UserId = model.UserId;
                 _context.Surveys.Update(survey);
                 await _context.SaveChangesAsync();
+
+                response.Data = new SurveyDTO(survey, false);
             }
             catch (Exception ex)
             {
@@ -596,13 +586,13 @@ namespace DataLayer.Repositories.Surveyrepository
         //change status to finished
         public async Task<CustomResponse> Delete(int id)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Encuesta eliminada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Survey deleted successfully.");
             try
             {
                 var survey = await _context.Surveys.FindAsync(id);
                 if (survey == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Encuesta no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey not found");
                 }
                 survey.StatusId = (int)SurveyStatus.Finished;
                 _context.Surveys.Update(survey);
@@ -617,13 +607,13 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> UpdateSurveyWithoutSections(SurveyWithoutSectiosDTO model)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Encuesta actualizada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Survey updated successfully");
             try
             {
                 var survey = await _context.Surveys.FindAsync(model.Id);
                 if (survey == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Encuesta no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey not found");
                 }
 
                 survey.Name = model.Name;
@@ -635,7 +625,7 @@ namespace DataLayer.Repositories.Surveyrepository
                 _context.Surveys.Update(survey);
                 await _context.SaveChangesAsync();
 
-                response.Data = survey;
+                response.Data = new SurveyDTO(survey, false);
             }
 
             catch (Exception ex)
@@ -648,13 +638,13 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> AddSection(AddSectionDTO model)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Sección agregada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Section added successfully.");
             try
             {
                 var survey = await _context.Surveys.FindAsync(model.SurveyId);
                 if (survey == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Encuesta no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey not found");
                 }
                 Section section = new Section
                 {
@@ -665,7 +655,7 @@ namespace DataLayer.Repositories.Surveyrepository
                 _context.Sections.Add(section);
                 await _context.SaveChangesAsync();
 
-                response.Data = section;
+                response.Data = new SectionDTO(section);
             }
             catch (Exception ex)
             {
@@ -676,13 +666,13 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> DeleteSection(int id)
         {
-            CustomResponse res = new CustomResponse(TypeOfResponse.OK, "Sección Eliminada Correctamente");
+            CustomResponse res = new CustomResponse(TypeOfResponse.OK, "Section deleted successfully.");
             try
             {
                 var section = await _context.Sections.FindAsync(id);
                 if (section == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Encuesta no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey not found");
                 }
                 var questions = await _context.Questions
                     .Where(q => q.SectionId == section.Id)
@@ -697,7 +687,6 @@ namespace DataLayer.Repositories.Surveyrepository
                 _context.Sections.Remove(section);
                 await _context.SaveChangesAsync();
 
-                res.Data = section;
             }
             catch (Exception e)
             {
@@ -708,7 +697,7 @@ namespace DataLayer.Repositories.Surveyrepository
         }
         public async Task<CustomResponse> UpdateQuestion(UpdateQuestionDTO model)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Pregunta actualizada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question updated successfully.");
             try
             {
                 var question = await _context.Questions.FindAsync(model.Id);
@@ -726,7 +715,7 @@ namespace DataLayer.Repositories.Surveyrepository
                     await _context.SaveChangesAsync();
                 }
 
-                response.Data = question;
+                response.Data = model;
             }
             catch (Exception ex)
             {
@@ -737,7 +726,7 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> AddNewQuestion(UpdateQuestionDTO model)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Pregunta agregada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question added successfully.");
             try
             {
                 var question = new Question
@@ -749,7 +738,7 @@ namespace DataLayer.Repositories.Surveyrepository
                 };
                 _context.Questions.Add(question);
                 await _context.SaveChangesAsync();
-                response.Data = question;
+                response.Data = new QuestionDTO(question, true);
             }
             catch (Exception ex)
             {
@@ -760,16 +749,16 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> DeleteQuestion(int id)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Pregunta eliminada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question deleted successfully");
             try
             {
                 var question = await _context.Questions.FindAsync(id);
                 if (question == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Pregunta no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Question not found");
                 }
 
-                // Eliminar opciones relacionadas
+               
                 var options = await _context.Options
                     .Where(x => x.QuestionId == question.Id)
                     .ToListAsync();
@@ -777,10 +766,10 @@ namespace DataLayer.Repositories.Surveyrepository
 
                 _context.Options.RemoveRange(options);
 
-                // Eliminar la pregunta
+               
                 _context.Questions.Remove(question);
 
-                // Guardar todos los cambios
+             
                 await _context.SaveChangesAsync();
 
                 response.Data = question;
@@ -794,13 +783,13 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> AddOptions(OptionDTO model)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Opción agregada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Option added successfully");
             try
             {
                 var question = await _context.Questions.FindAsync(model.question_id);
                 if (question == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Pregunta no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Question not found");
                 }
                 if (model.NextQuestionId <= 0)
                 {
@@ -816,7 +805,7 @@ namespace DataLayer.Repositories.Surveyrepository
                 };
                 _context.Options.Add(option);
                 await _context.SaveChangesAsync();
-                response.Data = option;
+                response.Data = model;
             }
             catch (Exception ex)
             {
@@ -828,14 +817,14 @@ namespace DataLayer.Repositories.Surveyrepository
 
         public async Task<CustomResponse> UpdateOption(OptionDTO model)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Opción editada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Option edited successfully.");
             Option option = new Option();
             try
             {
                 option = await _context.Options.FindAsync(model.Id);
                 if (option == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Opción no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Option not found");
                 }
                 if (model.NextQuestionId <= 0)
                 {
@@ -848,7 +837,6 @@ namespace DataLayer.Repositories.Surveyrepository
                 _context.Options.Update(option);
                 await _context.SaveChangesAsync();
 
-                response.Data = option;
             }
             catch (Exception ex)
             {
@@ -859,13 +847,13 @@ namespace DataLayer.Repositories.Surveyrepository
         }
         public async Task<CustomResponse> DeleteOption(int id)
         {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Opción eliminada correctamente");
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Option deletd successfully");
             try
             {
                 var option = await _context.Options.FindAsync(id);
                 if (option == null)
                 {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Opción no encontrada");
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Option not found");
                 }
                 _context.Options.Remove(option);
                 await _context.SaveChangesAsync();
@@ -880,7 +868,7 @@ namespace DataLayer.Repositories.Surveyrepository
         public async Task<CustomResponse> GetQuestions()
         {
 
-            CustomResponse res = new CustomResponse(TypeOfResponse.OK, "Preguntas obtenidas correctamente");
+            CustomResponse res = new CustomResponse(TypeOfResponse.OK, "Questions retrieved successfully");
             try
             {
                 var questions = await _context.Questions
@@ -888,7 +876,7 @@ namespace DataLayer.Repositories.Surveyrepository
                      .ToListAsync();
                 if (questions.Count == 0)
                 {
-                    res = new CustomResponse(TypeOfResponse.FailedResponse, "No se encontraron preguntas");
+                    res = new CustomResponse(TypeOfResponse.FailedResponse, "Questions not found");
                 }
                 else
                 {

@@ -1,4 +1,5 @@
 ﻿using DataLayer.Repositories.UserRepository;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Common;
 using Shared.Enums;
@@ -22,6 +23,7 @@ namespace InvoxSurveyAPI.Controllers
         }
 
         [HttpPost("Login")]
+        [AllowAnonymous]
         public async Task<CustomResponse> Login(UserLoginDTO user)
         {
             CustomResponse response = new CustomResponse();
