@@ -16,20 +16,21 @@ namespace InvoxSurveyAPI.Controllers
     [Authorize(Roles = "Administrador")]
     [ApiController]
     [Route("api/[controller]")]
-    public class SurveysController : Controller
+    public class SurveysController : UtilityController
     {
+        public SurveysController(
+            ISurveyRepository surveyRepository,
+            ISectionRepository sectionRepository,
+            IQuestionRepository questionRepository,
+            IOptionRepository optionRepository)
+            : base(surveyRepository, sectionRepository, questionRepository, optionRepository)
+        { }
 
-        private readonly ISurveyRepository _surveyRepository;
-
-        public SurveysController(ISurveyRepository surveyRepository)
-        {
-            _surveyRepository = surveyRepository;
-        }
-
-        [HttpGet]
+            [HttpGet]
         public async Task<IActionResult> All()
         {
-            CustomResponse response = await _surveyRepository.GetAll();
+            int userId = GetUserID();
+            CustomResponse response = await _surveyRepository.GetAll(userId);
             return Ok(response.Data);
         }
 
@@ -37,26 +38,8 @@ namespace InvoxSurveyAPI.Controllers
         public async Task<IActionResult> GetByStatus(SurveyQueryDTO query)
         {
             CustomResponse response = new CustomResponse(TypeOfResponse.FailedResponse, "Status not found");
-
-            switch (query.Status)
-            {
-                case SurveyStatus.Draft:
-                    response = await _surveyRepository.GetCreated();
-                    break;
-                case SurveyStatus.Published:
-                    response = await _surveyRepository.GetActive();
-                    break;
-                case SurveyStatus.Finished:
-                    response = await _surveyRepository.GetFinished();
-                    break;
-                case SurveyStatus.Archived:
-                    response = await _surveyRepository.GetArchived();
-                    break;  
-                default:
-                    break;
-            }   
-
-            CustomResponse res = await _surveyRepository.GetActive();
+            int userId = GetUserID();
+            CustomResponse res = await _surveyRepository.GetByStatus(query.Status.Value, userId);
             return Ok(res);
         }
 
@@ -65,6 +48,7 @@ namespace InvoxSurveyAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> Results(int id)
         {
+            CheckOwnership(survey_id: id);
             CustomResponse response = await _surveyRepository.GetResults(id);
             return Ok(response);
         }
@@ -72,6 +56,7 @@ namespace InvoxSurveyAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> ResultsByFilters(SurveyAnswerFilterDTO survey_filters)
         {
+            CheckOwnership(survey_id: survey_filters.Id);
             CustomResponse response = await _surveyRepository.GetResultsByFilters(survey_filters.Id, survey_filters.Filters);
             return Ok(response);
         }
@@ -79,6 +64,7 @@ namespace InvoxSurveyAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> ShowOpenAnswer(SurveyOpenAnswerDTO model)
         {
+            CheckOwnership(survey_id: model.SurveyId);
             CustomResponse response = await _surveyRepository.GetOpenAnswer(model.SurveyId, model.QuestionId);
             return Ok(response);
         }
@@ -86,6 +72,7 @@ namespace InvoxSurveyAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> Answer(int id)
         {
+            CheckOwnership(survey_id: id);
             CustomResponse response = await _surveyRepository.GetById(id);
             return Ok(response);
         }
@@ -93,6 +80,7 @@ namespace InvoxSurveyAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> Get(int id)
         {
+            CheckOwnership(survey_id: id);
             CustomResponse response = await _surveyRepository.GetById(id);
             return Ok(response);
         }
@@ -130,6 +118,7 @@ namespace InvoxSurveyAPI.Controllers
      
         public async Task<IActionResult> Edit(int id)
         {
+            CheckOwnership(survey_id: id);
             CustomResponse response = await _surveyRepository.GetById(id);
             return Ok(response);
         }
@@ -138,31 +127,32 @@ namespace InvoxSurveyAPI.Controllers
 
         public async Task<IActionResult> Update(SurveyCreateDTO model)
         {
+            CheckOwnership(survey_id: model.id);
             CustomResponse response = await _surveyRepository.Update(model);
             return Ok(response);
         }
 
         public async Task<IActionResult> Delete(int id)
         {
+            CheckOwnership(survey_id: id);
             CustomResponse response = await _surveyRepository.Delete(id);
             return Ok(response);
         }
 
         public async Task<IActionResult> PublicarEncuesta(int id)
         {
+            CheckOwnership(survey_id: id);
             CustomResponse response = await _surveyRepository.Publicar(id);
             return Ok(response);
         }
 
         public async Task<IActionResult> UpdateSurveyWithoutSections(SurveyWithoutSectiosDTO model)
         {
-
+            CheckOwnership(survey_id: model.Id);
             CustomResponse response = new CustomResponse();
             try
             {
-                var userIdClaim = User?.FindAll(ClaimTypes.NameIdentifier).FirstOrDefault().Value;
-                var userId = userIdClaim;
-                model.UserId = Convert.ToInt32(userId);
+               
                 response = await _surveyRepository.UpdateSurveyWithoutSections(model);
                 
             }
@@ -176,35 +166,8 @@ namespace InvoxSurveyAPI.Controllers
 
        
 
-        public async Task<IActionResult> DeleteQuestion(int id)
-        {
-            CustomResponse res = await _surveyRepository.DeleteQuestion(id);
-            return Ok(res);
-        }
+       
 
-
-        public async Task<IActionResult> SaveQuestion(UpdateQuestionDTO model)
-        {
-            CustomResponse response = await _surveyRepository.AddNewQuestion(model);
-            return Ok(response);
-        }
-
-        public async Task<IActionResult> SaveOption(OptionDTO model)
-        {
-            CustomResponse res = await _surveyRepository.AddOptions(model);
-            return Ok(res);
-        }
-
-        public async Task<IActionResult> UpdateOption(OptionDTO model)
-        {
-            CustomResponse response = await _surveyRepository.UpdateOption(model);
-            return Ok(response);
-        }
-
-        public async Task<IActionResult> DeleteOption(int id)
-        {
-            CustomResponse res = await _surveyRepository.DeleteOption(id);
-            return Ok(res);
-        }
+       
     }
 }

@@ -110,9 +110,9 @@ namespace DataLayer.Repositories.QuestionsRepository
         public string Description { get; set; } = string.Empty;
     }
 
-    public class UpdateQuestionDTO
+    public class AddUpdateQuestionDTO
     {
-        public UpdateQuestionDTO()
+        public AddUpdateQuestionDTO()
         {
         }
 

@@ -16,34 +16,21 @@ namespace DataLayer.Repositories.Surveyrepository
 {
     public interface ISurveyRepository
     {
-        Task<CustomResponse> GetAll();
-        Task<CustomResponse> GetQuestions();
+        Task<CustomResponse> GetAll(int user_id);
         Task<CustomResponse> GetById(int id);
-        Task<CustomResponse> SaveAnswer(SurveyAnswerDTO model);
+        Task<CustomResponse> GetByStatus(SurveyStatus status, int user_id);
         Task<CustomResponse> Create(SurveyCreateDTO model);
-        Task<CustomResponse> UpdateSurveyWithoutSections(SurveyWithoutSectiosDTO model);
-        Task<CustomResponse> AddSection(AddSectionDTO model);
-        Task<CustomResponse> DeleteSection(int id);
-        Task<CustomResponse> UpdateQuestion(UpdateQuestionDTO model);
-        Task<CustomResponse> DeleteQuestion(int id);
-        Task<CustomResponse> Publicar(int id);
         Task<CustomResponse> Update(SurveyCreateDTO model);
-        Task<CustomResponse> AddNewQuestion(UpdateQuestionDTO model);
         Task<CustomResponse> Delete(int id);
-        Task<CustomResponse> AddOptions(OptionDTO model);
-        Task<CustomResponse> UpdateOption(OptionDTO model);
-        Task<CustomResponse> DeleteOption(int id);
+        Task<CustomResponse> SaveAnswer(SurveyAnswerDTO model);
+        Task<CustomResponse> UpdateSurveyWithoutSections(SurveyWithoutSectiosDTO model);
+        Task<CustomResponse> Publicar(int id);
 
-        Task<CustomResponse> GetOpenAnswer(int survey_id, int question_id);
+        //pending move to another repository, like ReportsRepository
+        Task<CustomResponse> GetOpenAnswer(int survey_id, int question_id);   
+        Task<CustomResponse> GetResults(int id);  
+        Task<CustomResponse> GetResultsByFilters(int id, List<int> filters); 
 
-        Task<CustomResponse> GetActive();
-        Task<CustomResponse> GetFinished();
-        Task<CustomResponse> GetArchived();
-        Task<CustomResponse> GetResults(int id);
-        Task<CustomResponse> GetResultsByFilters(int id, List<int> filters);
-
-
-        Task<CustomResponse> GetCreated();
     }
 
 
@@ -56,57 +43,32 @@ namespace DataLayer.Repositories.Surveyrepository
             _context = context;
         }
 
-        public async Task<CustomResponse> GetActive()
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "OK");
-            try
-            {
-                var surveys = await _context.Surveys.Where(s => s.StatusId == (int)SurveyStatus.Published).Select(s => new SurveyDTO(s, false)).ToListAsync();
-                if (surveys.Count == 0)
-                {
-                    response = new CustomResponse(TypeOfResponse.FailedResponse, "Surveys not found");
-                    response.Data = new List<SurveyDTO>();
-                }
-                else
-                {
-                    response.Data = surveys;
-                }
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-            return response;
-        }
-        public async Task<CustomResponse> GetCreated()
-        {
-            CustomResponse res = new CustomResponse(TypeOfResponse.OK, "OK");
-            try
-            {
-                var surveys = await _context.Surveys.Where(s => s.StatusId == (int)SurveyStatus.Draft).Select(s => new SurveyDTO(s, false)).ToListAsync();
-                if (surveys.Count == 0)
-                {
-                    res = new CustomResponse(TypeOfResponse.FailedResponse, "Surveys not found");
-                    res.Data = new List<SurveyDTO>();
-                }
-                else
-                {
-                    res.Data = surveys;
-                }
-            }
-            catch (Exception ex)
-            {
-                res = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-            return res;
-        }
 
-        public async Task<CustomResponse> GetFinished()
+        public async Task<CustomResponse> GetByStatus(SurveyStatus status, int user_id)
         {
             CustomResponse response = new CustomResponse(TypeOfResponse.OK, "OK");
             try
             {
-                var surveys = await _context.Surveys.Where(s => s.StatusId == (int)SurveyStatus.Finished).Select(s => new SurveyDTO(s, false)).ToListAsync();
+                List<SurveyDTO> surveys = new List<SurveyDTO>();
+
+                switch (status)
+                {
+                    case SurveyStatus.Draft:
+                        surveys = await _context.Surveys.Where(s => s.StatusId == (int)SurveyStatus.Draft && s.UserId == user_id).Select(s => new SurveyDTO(s, false)).ToListAsync();
+                        break;
+                    case SurveyStatus.Published:
+                        surveys = await _context.Surveys.Where(s => s.StatusId == (int)SurveyStatus.Published && s.UserId == user_id).Select(s => new SurveyDTO(s, false)).ToListAsync();
+                        break;
+                    case SurveyStatus.Finished:
+                        surveys = await _context.Surveys.Where(s => s.StatusId == (int)SurveyStatus.Finished && s.UserId == user_id).Select(s => new SurveyDTO(s, false)).ToListAsync();
+                        break;
+                    case SurveyStatus.Archived:
+                        surveys = await _context.Surveys.Where(s => s.StatusId == (int)SurveyStatus.Archived && s.UserId == user_id).Select(s => new SurveyDTO(s, false)).ToListAsync();
+                        break;
+                    default:
+                        break;
+                }
+
                 if (surveys.Count == 0)
                 {
                     response = new CustomResponse(TypeOfResponse.FailedResponse, "Surveys not found");
@@ -124,36 +86,15 @@ namespace DataLayer.Repositories.Surveyrepository
             return response;
         }
 
-        public async Task<CustomResponse> GetArchived()
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "OK");
-            try
-            {
-                var surveys = await _context.Surveys.Where(s => s.StatusId == (int)SurveyStatus.Archived).Select(s => new SurveyDTO(s, false)).ToListAsync();
-                if (surveys.Count == 0)
-                {
-                    response = new CustomResponse(TypeOfResponse.FailedResponse, "Surveys not found");
-                    response.Data = new List<SurveyDTO>();
-                }
-                else
-                {
-                    response.Data = surveys;
-                }
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-            return response;
-        }
+       
 
-        public async Task<CustomResponse> GetAll()
+        public async Task<CustomResponse> GetAll(int user_id)
         {
             CustomResponse response = new CustomResponse(TypeOfResponse.OK, "OK");
 
             try
             {
-                var surveys = await _context.Surveys.Select(s => new SurveyDTO(s, true)).ToListAsync();
+                var surveys = await _context.Surveys.Where(x=> x.UserId == user_id).Select(s => new SurveyDTO(s, true)).ToListAsync();
                 if (surveys.Count == 0)
                 {
                     response = new CustomResponse(TypeOfResponse.FailedResponse, "Surveys not found");
@@ -636,259 +577,6 @@ namespace DataLayer.Repositories.Surveyrepository
             return response;
         }
 
-        public async Task<CustomResponse> AddSection(AddSectionDTO model)
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Section added successfully.");
-            try
-            {
-                var survey = await _context.Surveys.FindAsync(model.SurveyId);
-                if (survey == null)
-                {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey not found");
-                }
-                Section section = new Section
-                {
-                    Description = model.Description,
-                    SurveyId = model.SurveyId,
-                };
-
-                _context.Sections.Add(section);
-                await _context.SaveChangesAsync();
-
-                response.Data = new SectionDTO(section);
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-            return response;
-        }
-
-        public async Task<CustomResponse> DeleteSection(int id)
-        {
-            CustomResponse res = new CustomResponse(TypeOfResponse.OK, "Section deleted successfully.");
-            try
-            {
-                var section = await _context.Sections.FindAsync(id);
-                if (section == null)
-                {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Survey not found");
-                }
-                var questions = await _context.Questions
-                    .Where(q => q.SectionId == section.Id)
-                    .ToListAsync();
-
-                var options = await _context.Options
-                    .Where(o => questions.Select(q => q.Id).Contains(o.QuestionId))
-                    .ToListAsync();
-
-                _context.Options.RemoveRange(options);
-                _context.Questions.RemoveRange(questions);
-                _context.Sections.Remove(section);
-                await _context.SaveChangesAsync();
-
-            }
-            catch (Exception e)
-            {
-                res.Message = e.Message;
-                res.TypeOfResponse = TypeOfResponse.Exception;
-            }
-            return res;
-        }
-        public async Task<CustomResponse> UpdateQuestion(UpdateQuestionDTO model)
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question updated successfully.");
-            try
-            {
-                var question = await _context.Questions.FindAsync(model.Id);
-                if (question == null)
-                {
-                    response.TypeOfResponse = TypeOfResponse.FailedResponse;
-                    response.Message = "No se encontro la pregunta";
-                }
-                else
-                {
-                    question.Description = model.Description;
-                    question.TypeId = model.TypeId;
-                    question.HasOther = model.Other;
-                    _context.Questions.Update(question);
-                    await _context.SaveChangesAsync();
-                }
-
-                response.Data = model;
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-            return response;
-        }
-
-        public async Task<CustomResponse> AddNewQuestion(UpdateQuestionDTO model)
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question added successfully.");
-            try
-            {
-                var question = new Question
-                {
-                    Description = model.Description,
-                    TypeId = model.TypeId,
-                    HasOther = model.Other,
-                    SectionId = model.SectionId
-                };
-                _context.Questions.Add(question);
-                await _context.SaveChangesAsync();
-                response.Data = new QuestionDTO(question, true);
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-            return response;
-        }
-
-        public async Task<CustomResponse> DeleteQuestion(int id)
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question deleted successfully");
-            try
-            {
-                var question = await _context.Questions.FindAsync(id);
-                if (question == null)
-                {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Question not found");
-                }
-
-               
-                var options = await _context.Options
-                    .Where(x => x.QuestionId == question.Id)
-                    .ToListAsync();
-
-
-                _context.Options.RemoveRange(options);
-
-               
-                _context.Questions.Remove(question);
-
-             
-                await _context.SaveChangesAsync();
-
-                response.Data = question;
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-            return response;
-        }
-
-        public async Task<CustomResponse> AddOptions(OptionDTO model)
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Option added successfully");
-            try
-            {
-                var question = await _context.Questions.FindAsync(model.question_id);
-                if (question == null)
-                {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Question not found");
-                }
-                if (model.NextQuestionId <= 0)
-                {
-                    model.NextQuestionId = null;
-                }
-                Option option = new Option
-                {
-                    Description = model.Description,
-                    QuestionId = model.question_id,
-                    IsOpen = model.IsOpen,
-                    SkipSection = model.SkipSection,
-                    NextQuestionId = model.NextQuestionId
-                };
-                _context.Options.Add(option);
-                await _context.SaveChangesAsync();
-                response.Data = model;
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-
-            }
-            return response;
-        }
-
-        public async Task<CustomResponse> UpdateOption(OptionDTO model)
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Option edited successfully.");
-            Option option = new Option();
-            try
-            {
-                option = await _context.Options.FindAsync(model.Id);
-                if (option == null)
-                {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Option not found");
-                }
-                if (model.NextQuestionId <= 0)
-                {
-                    model.NextQuestionId = null;
-                }
-                option.Description = model.Description;
-                option.IsOpen = model.IsOpen;
-                option.SkipSection = model.SkipSection;
-                option.NextQuestionId = model.NextQuestionId;
-                _context.Options.Update(option);
-                await _context.SaveChangesAsync();
-
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-
-            return response;
-        }
-        public async Task<CustomResponse> DeleteOption(int id)
-        {
-            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Option deletd successfully");
-            try
-            {
-                var option = await _context.Options.FindAsync(id);
-                if (option == null)
-                {
-                    return new CustomResponse(TypeOfResponse.FailedResponse, "Option not found");
-                }
-                _context.Options.Remove(option);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-            return response;
-        }
-
-        public async Task<CustomResponse> GetQuestions()
-        {
-
-            CustomResponse res = new CustomResponse(TypeOfResponse.OK, "Questions retrieved successfully");
-            try
-            {
-                var questions = await _context.Questions
-                   .Select(q => new QuestionDTO(q, true))
-                     .ToListAsync();
-                if (questions.Count == 0)
-                {
-                    res = new CustomResponse(TypeOfResponse.FailedResponse, "Questions not found");
-                }
-                else
-                {
-                    res.Data = questions;
-                }
-            }
-            catch (Exception ex)
-            {
-                res = new CustomResponse(TypeOfResponse.Exception, ex.Message);
-            }
-
-            return res;
-        }
+        
     }
 }

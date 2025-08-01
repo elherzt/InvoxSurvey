@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DataLayer.Models;
+using Microsoft.EntityFrameworkCore;
+using Shared.Common;
+using Shared.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +12,14 @@ namespace DataLayer.Repositories.QuestionsRepository
 {
     public interface IQuestionRepository
     {
-        public List<QuestionAnswerOptionDTO> GetAnswers(int question_id);
-        public List<QuestionTypesDTO> GetQuestionTypes();
+        Task<CustomResponse> Add(AddUpdateQuestionDTO model);
+        Task<CustomResponse> Update(AddUpdateQuestionDTO model);
+        Task<CustomResponse> Delete(int id);
+
+        List<QuestionAnswerOptionDTO> GetAnswers(int question_id);
+        List<QuestionTypesDTO> GetQuestionTypes();
+
+
     }
 
     public class QuestionRepository : IQuestionRepository
@@ -21,6 +30,94 @@ namespace DataLayer.Repositories.QuestionsRepository
         {
             _context = context;
         }
+
+
+        public async Task<CustomResponse> Update(AddUpdateQuestionDTO model)
+        {
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question updated successfully.");
+            try
+            {
+                var question = await _context.Questions.FindAsync(model.Id);
+                if (question == null)
+                {
+                    response.TypeOfResponse = TypeOfResponse.FailedResponse;
+                    response.Message = "No se encontro la pregunta";
+                }
+                else
+                {
+                    question.Description = model.Description;
+                    question.TypeId = model.TypeId;
+                    question.HasOther = model.Other;
+                    _context.Questions.Update(question);
+                    await _context.SaveChangesAsync();
+                }
+
+                response.Data = model;
+            }
+            catch (Exception ex)
+            {
+                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
+            }
+            return response;
+        }
+
+        public async Task<CustomResponse> Add(AddUpdateQuestionDTO model)
+        {
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question added successfully.");
+            try
+            {
+                var question = new Question
+                {
+                    Description = model.Description,
+                    TypeId = model.TypeId,
+                    HasOther = model.Other,
+                    SectionId = model.SectionId
+                };
+                _context.Questions.Add(question);
+                await _context.SaveChangesAsync();
+                response.Data = new QuestionDTO(question, true);
+            }
+            catch (Exception ex)
+            {
+                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
+            }
+            return response;
+        }
+
+        public async Task<CustomResponse> Delete(int id)
+        {
+            CustomResponse response = new CustomResponse(TypeOfResponse.OK, "Question deleted successfully");
+            try
+            {
+                var question = await _context.Questions.FindAsync(id);
+                if (question == null)
+                {
+                    return new CustomResponse(TypeOfResponse.FailedResponse, "Question not found");
+                }
+
+
+                var options = await _context.Options
+                    .Where(x => x.QuestionId == question.Id)
+                    .ToListAsync();
+
+
+                _context.Options.RemoveRange(options);
+
+
+                _context.Questions.Remove(question);
+
+
+                await _context.SaveChangesAsync();
+
+                response.Data = question;
+            }
+            catch (Exception ex)
+            {
+                response = new CustomResponse(TypeOfResponse.Exception, ex.Message);
+            }
+            return response;
+        }
+
 
         public List<QuestionAnswerOptionDTO> GetAnswers(int question_id)
         {
